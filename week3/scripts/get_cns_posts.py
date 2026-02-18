@@ -14,18 +14,35 @@ headers = {
 }
 
 
-response = requests.get(cns_url, headers=headers)
-print(f"Status code: {response.status_code}")
+all_posts = []
+page = 1
+per_page = 100
+max_pages = 10
 
-if response.status_code == 200:
+while page <= max_pages:
+    params = {"per_page": per_page, "page": page}
+    response = requests.get(cns_url, headers=headers, params=params)
+    print(f"Status code (page {page}): {response.status_code}")
+
+    if response.status_code != 200:
+        print(f"Error: Failed to fetch data from {cns_url}")
+        print(f"Response: {response.text[:200]}")
+        break
+
     try:
         data = response.json()
-        with open(cns_filename, "w") as f:
-            json.dump(data, f, indent=4)
-        print(f"Saved posts to {cns_filename}")
     except json.JSONDecodeError:
-        print(f"Error: Response is not valid JSON")
+        print("Error: Response is not valid JSON")
         print(f"Response text: {response.text[:200]}")
-else:
-    print(f"Error: Failed to fetch data from {cns_url}")
-    print(f"Response: {response.text[:200]}") 
+        break
+
+    if not data:
+        break
+
+    all_posts.extend(data)
+    page += 1
+
+if all_posts:
+    with open(cns_filename, "w") as f:
+        json.dump(all_posts, f, indent=4)
+    print(f"Saved {len(all_posts)} posts to {cns_filename}")
